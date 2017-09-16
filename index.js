@@ -5,8 +5,9 @@ const firebase = require('firebase');
 //
 // crawler settings
 //
-const NUM_OF_BATCHES = 1;
+const NUM_OF_BATCHES = 2;
 const BATCH_SIZE = 10;
+const SEARCH_TEXT = "PUBATTLEGROUNDS"
 
 
 
@@ -32,32 +33,39 @@ gfycat.authenticate().then(res => {
     //Your app is now authenticated
     console.log('token', gfycat.token);
 
-    var batchCount = 0;
+    let options = {
+        search_text: SEARCH_TEXT,
+        count: BATCH_SIZE,
+        cursor : ""
+        //first: batchCount * BATCH_SIZE
+    };
+    batchRequest(options);
+});
 
-    while ( batchCount < NUM_OF_BATCHES) {
-        let options = {
-            search_text: 'PUBATTLEGROUNDS',
-            count: BATCH_SIZE,
-            first: batchCount * BATCH_SIZE
-        };
-          
+var batchCount = 0;
+function batchRequest(options) {
+
+    if (batchCount < NUM_OF_BATCHES) {
+
+        console.log(options);
+
         gfycat.search(options).then(data => {
-            console.log('gfycats', data);
+            //console.log('gfycats', data);
             var gfycats = data.gfycats;
             for (var i=0,len=gfycats.length; i < len; i++) {
                 writeGfycat(gfycats[i]);
             }
+            options.cursor = data.cursor;
+            batchCount++;
+            batchRequest(options);
         });
-
-        batchCount++;
-    }    
-});
+    }
+}
 
 function writeGfycat(gfycat) {
 
     firebase.database().ref('gfycatindex/' + gfycat.gfyName).once("value", function(snapshot) {
         if (!snapshot.exists()) {
-           
             firebase.database().ref('gfycatindex/' + gfycat.gfyName).set({
                 ex: true
             });
